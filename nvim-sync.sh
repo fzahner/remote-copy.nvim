@@ -107,6 +107,15 @@ test_neovim() {
     fi
 }
 
+show_help() {
+    cat <<EOF
+Usage: $(basename "$0") [options]
+
+Options:
+  --help       Show this help message
+EOF
+}
+
 # Main execution
 main() {
     echo "Nvim.sync script"
@@ -122,7 +131,16 @@ main() {
 
     echo
     log_success "Deployment complete!"
+    echo
+    log_info "Connect to the remote machine using:"
+    echo "$SSH_COMMAND"
 }
+
+
+if [[ "$1" == "--help" ]]; then
+    show_help
+    exit 0
+fi
 
 # Run the script
 main
