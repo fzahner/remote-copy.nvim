@@ -124,6 +124,7 @@ install_additional() {
   fi
 
   log_info "- Installing xclip"
+  ssh $SSH_ARGS "sudo apt-get update -qq"
   ssh $SSH_ARGS "sudo apt-get -qq -y install xclip"
   log_info "  - Adding xclip override to config"
   ssh $SSH_ARGS '
@@ -142,6 +143,9 @@ install_additional() {
       cache_enabled = 0
     }" >> ~/.config/nvim/init.lua
   '
+
+  log_info "- Installing python3-venv"
+  ssh $SSH_ARGS "sudo apt install python3-venv -qq"
   log_success "Installed additional utils."
 }
 show_help() {
