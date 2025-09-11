@@ -145,7 +145,7 @@ install_additional() {
   '
 
   log_info "- Installing python3-venv"
-  ssh $SSH_ARGS "sudo apt install python3-venv -qq"
+  ssh $SSH_ARGS "sudo apt-get install python3-venv -qq"
   log_success "Installed additional utils."
 }
 show_help() {
@@ -158,8 +158,9 @@ This script (unless specified with --no-additional) also additionally installs:
   - x-clip for remote clipboard usage.
 
 Options:
-  --help          Show this help message
-  --no-additional Does not install additional utils (see above)
+  --help              Show this help message
+  --no-additional     Does not install additional utils (see above)
+  --appimage [URL]    Allows to specify the URL to the App Image. Default is $NVIM_APPIMAGE_URL
 
 EOF
 }
@@ -190,8 +191,17 @@ main() {
 # Parse command-line options
 while [[ "$#" -gt 0 ]]; do
     case $1 in
-        --no-additional) INSTALL_ADDITIONAL=false ;;
         --help) show_help; exit 0 ;;
+        --no-additional) INSTALL_ADDITIONAL=false ;;
+        --appimage)
+          if [[ -n "$2" && ! "$2" =~ ^- ]]; then
+              NVIM_APPIMAGE_URL="$2"
+              shift
+          else
+              log_error "Error: --appimage requires a URL argument"
+              exit 1
+          fi
+          ;;
         *) echo "Unknown parameter passed: $1"; show_help; exit 1 ;;
     esac
     shift
