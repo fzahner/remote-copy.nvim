@@ -10,7 +10,8 @@ LOCAL_CONFIG_DIR="$HOME/.config/nvim"
 REMOTE_CONFIG_DIR="~/.config/nvim"
 
 # Defaults
-INSTALL_ADDITIONAL=true
+INSTALL_UTILS=true
+INSTALL_GLOBAL=false
 
 # Colors
 GREEN='\033[0;32m'
@@ -63,15 +64,24 @@ install_neovim() {
         chmod +x ~/.local/bin/nvim
     "
 
-    # Add to PATH if not already there
-    ssh $SSH_ARGS '
-        if ! grep -q "\.local/bin" ~/.bashrc 2>/dev/null; then
-            echo "export PATH=\"\$HOME/.local/bin:\$PATH\"" >> ~/.bashrc
-        fi
-        if [[ -f ~/.zshrc ]] && ! grep -q "\.local/bin" ~/.zshrc 2>/dev/null; then
-            echo "export PATH=\"\$HOME/.local/bin:\$PATH\"" >> ~/.zshrc
-        fi
-    '
+    if [[ "$INSTALL_GLOBAL" = true ]]; then
+      log_info "Adding nvim to global PATH"
+      ssh $SSH_ARGS '
+        echo "export PATH=\"\$HOME/.local/bin:\$PATH\"" | sudo tee /etc/profile.d/localbin.sh
+        sudo chmod +x /etc/profile.d/localbin.sh
+      '
+    else
+      log_info "Adding nvim to .bashrc/.zshrc"
+      # Add to PATH if not already there
+      ssh $SSH_ARGS '
+          if ! grep -q "\.local/bin" ~/.bashrc 2>/dev/null; then
+              echo "export PATH=\"\$HOME/.local/bin:\$PATH\"" >> ~/.bashrc
+          fi
+          if [[ -f ~/.zshrc ]] && ! grep -q "\.local/bin" ~/.zshrc 2>/dev/null; then
+              echo "export PATH=\"\$HOME/.local/bin:\$PATH\"" >> ~/.zshrc
+          fi
+      '
+    fi
 
     log_success "✓ Neovim AppImage installed"
 }
@@ -112,7 +122,7 @@ test_neovim() {
 
 # Install packages needed for additional functionality
 install_additional() {
-  if [[ "$INSTALL_ADDITIONAL" = false ]]; then
+  if [[ "$INSTALL_UTILS" = false ]]; then
     log_warning "Skipping installation of additional utils."
     return
   fi
@@ -125,7 +135,7 @@ install_additional() {
 
   log_info "- Installing xclip"
   ssh $SSH_ARGS "sudo apt-get update -qq"
-  ssh $SSH_ARGS "sudo apt-get -qq -y install xclip"
+  ssh $SSH_ARGS "sudo apt-get -qq -y install xclip > /dev/null"
   log_info "  - Adding xclip override to config"
   ssh $SSH_ARGS '
     echo >> ~/.config/nvim/init.lua &&
@@ -145,9 +155,9 @@ install_additional() {
   '
 
   log_info "- Installing python3-venv"
-  ssh $SSH_ARGS "sudo apt-get install python3-venv -qq"
+  ssh $SSH_ARGS "sudo apt-get install python3-venv -qq > /dev/null"
   log_info "- Installing ripgrep"
-  ssh $SSH_ARGS "sudo apt-get install ripgrep -qq"
+  ssh $SSH_ARGS "sudo apt-get install ripgrep -qq > /dev/null"
   log_success "Installed additional utils."
 }
 show_help() {
@@ -156,14 +166,15 @@ Usage: $(basename "$0") [options]
 
 Script which copies local NeoVim configuration and installs the NeoVim Appimage on a remote, SSH-reachable machine.
 
-This script (unless specified with --no-additional) also additionally installs:
+This script (unless specified with --no-utils) also additionally installs:
   - xclip:        Used for copying into local register from remote nvim. Requires SSH session to be started with -X flag
   - python3-venv: Virtual environements are needed for vim functionality
   - rigrep:       Used for fuzzy finding (for example in telescope.nvim)
 
 Options:
   --help              Show this help message
-  --no-additional     Does not install additional utils (see above)
+  --no-utils          Does not install additional utils (see above)
+  --install-global    Adds nvim to the global path instead of the shell configuration file
   --appimage [URL]    Allows to specify the URL to the App Image. Default is $NVIM_APPIMAGE_URL
 
 EOF
@@ -196,7 +207,8 @@ main() {
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --help) show_help; exit 0 ;;
-        --no-additional) INSTALL_ADDITIONAL=false ;;
+        --no-utils) INSTALL_UTILS=false ;;
+        --install-global) INSTALL_GLOBAL=true ;;
         --appimage)
           if [[ -n "$2" && ! "$2" =~ ^- ]]; then
               NVIM_APPIMAGE_URL="$2"
