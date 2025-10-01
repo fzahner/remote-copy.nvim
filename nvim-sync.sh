@@ -2,11 +2,10 @@
 
 # Simple Neovim Deployment Script
 # Copies local config and installs Neovim AppImage on remote machine
-
 set -e
 
 # Configuration
-NVIM_APPIMAGE_URL="https://github.com/neovim/neovim/releases/download/v0.11.4/nvim-linux-x86_64.appimage"
+NVIM_APPIMAGE_URL="https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.appimage"
 LOCAL_CONFIG_DIR="$HOME/.config/nvim"
 REMOTE_CONFIG_DIR="~/.config/nvim"
 
@@ -111,6 +110,7 @@ test_neovim() {
     fi
 }
 
+# Install packages needed for additional functionality
 install_additional() {
   if [[ "$INSTALL_ADDITIONAL" = false ]]; then
     log_warning "Skipping installation of additional utils."
@@ -146,6 +146,8 @@ install_additional() {
 
   log_info "- Installing python3-venv"
   ssh $SSH_ARGS "sudo apt-get install python3-venv -qq"
+  log_info "- Installing ripgrep"
+  ssh $SSH_ARGS "sudo apt-get install ripgrep -qq"
   log_success "Installed additional utils."
 }
 show_help() {
@@ -155,7 +157,9 @@ Usage: $(basename "$0") [options]
 Script which copies local NeoVim configuration and installs the NeoVim Appimage on a remote, SSH-reachable machine.
 
 This script (unless specified with --no-additional) also additionally installs:
-  - x-clip for remote clipboard usage.
+  - xclip:        Used for copying into local register from remote nvim. Requires SSH session to be started with -X flag
+  - python3-venv: Virtual environements are needed for vim functionality
+  - rigrep:       Used for fuzzy finding (for example in telescope.nvim)
 
 Options:
   --help              Show this help message
